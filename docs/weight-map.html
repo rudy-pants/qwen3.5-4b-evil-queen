@@ -1,0 +1,397 @@
+<title>Qwen3.5-4B Weight Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a technical atlas. One column of "plates"; each plate zooms one level deeper (model -> layer -> neuron -> bytes). */
+:root{
+  --bg:#F2F4F6; --panel:#FFFFFF; --ink:#16212C; --muted:#5A6774; --line:#CDD5DD; --soft:#E6EBF0;
+  --delta:#16798A; --delta-bg:#DCEFF2;
+  --attn:#6A4FA3; --attn-bg:#ECE6F6;
+  --plus:#C2410C; --plus-bg:#FCE7DA;
+  --minus:#1D5FA8; --minus-bg:#DDE9F7;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0F151B; --panel:#161E26; --ink:#E4EAF0; --muted:#97A4B1; --line:#2C3843; --soft:#1D2731;
+  --delta:#4FC0D0; --delta-bg:#123139; --attn:#A890E0; --attn-bg:#2A2340;
+  --plus:#F2894E; --plus-bg:#3A2216; --minus:#6FA8EE; --minus-bg:#172A40; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --panel:#161E26; --ink:#E4EAF0; --muted:#97A4B1; --line:#2C3843; --soft:#1D2731;
+  --delta:#4FC0D0; --delta-bg:#123139; --attn:#A890E0; --attn-bg:#2A2340;
+  --plus:#F2894E; --plus-bg:#3A2216; --minus:#6FA8EE; --minus-bg:#172A40; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+p{margin:0;max-width:68ch}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:10px}
+header p{color:var(--muted)}
+.plate{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:16px;min-width:0}
+.plate-head{display:flex;flex-direction:column;gap:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.grid2>*{min-width:0}
+.scroll{overflow-x:auto;min-width:0}
+.note{font-size:13.5px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip.plus{background:var(--plus-bg);color:var(--plus)}
+.chip.minus{background:var(--minus-bg);color:var(--minus)}
+.chip.delta{background:var(--delta-bg);color:var(--delta)}
+.chip.attn{background:var(--attn-bg);color:var(--attn)}
+.formula{font-family:var(--mono);font-size:14px;background:var(--soft);border-radius:8px;padding:12px 14px;overflow-x:auto;white-space:pre}
+
+/* SiLU plot */
+svg text{font-family:var(--mono);fill:var(--muted);font-size:11px}
+.ax{stroke:var(--line);stroke-width:1}
+.grid-l{stroke:var(--soft);stroke-width:1}
+.silu{fill:none;stroke:var(--plus);stroke-width:2.5}
+.relu{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4}
+
+/* Model spine */
+.spine{display:flex;flex-direction:column;gap:0;align-items:stretch}
+.stage{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start;padding:12px 0;border-top:1px dashed var(--line)}
+.stage:first-child{border-top:0}
+@media (max-width:600px){.stage{grid-template-columns:1fr;gap:6px}}
+.stage>*{min-width:0}
+.stage .name{font-family:var(--mono);font-size:13px;font-weight:500;word-break:break-all}
+.stage .shape{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.side{display:flex;gap:12px;flex-wrap:wrap}
+.side .box{flex:1 1 220px;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--muted)}
+.side .box b{color:var(--ink);font-weight:600}
+
+/* Layer strip */
+.strip{display:flex;flex-wrap:wrap;gap:10px}
+.group{display:flex;gap:3px;padding:3px;border-radius:7px;background:var(--soft)}
+.cell{position:relative;width:34px;height:42px;border:0;border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--ink);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}
+.cell.lin{background:var(--delta-bg)} .cell.full{background:var(--attn-bg)}
+.cell::before{content:"";position:absolute;top:5px;left:50%;width:14px;height:4px;margin-left:-7px;border-radius:2px}
+.cell.lin::before{background:var(--delta)} .cell.full::before{background:var(--attn)}
+.cell[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.cell:focus-visible{outline:2px solid var(--plus);outline-offset:2px}
+.cell .pin{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;border:2px solid var(--panel)}
+.pin.p{background:var(--plus)} .pin.m{background:var(--minus)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);align-items:center}
+
+/* Layer detail */
+.flow{display:flex;flex-direction:column;gap:0;position:relative;padding-left:26px}
+.flow::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--line)}
+.fstep{position:relative;padding:7px 0}
+.fstep::before{content:"";position:absolute;left:-22px;top:15px;width:11px;height:11px;border-radius:50%;background:var(--panel);border:2px solid var(--muted)}
+.fstep.add::before{content:"+";width:15px;height:15px;left:-24px;top:12px;font:600 12px/11px var(--mono);text-align:center;color:var(--ink)}
+.fstep.hot::before{border-color:var(--plus);background:var(--plus)}
+.fstep.hot.m::before{border-color:var(--minus);background:var(--minus)}
+.fstep .t{font-weight:600;font-size:14px}
+.fstep .d{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--soft);vertical-align:top}
+th{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.n{font-family:var(--mono);font-size:12px;word-break:break-all}
+td.s{font-family:var(--mono);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.hot td{background:var(--plus-bg)}
+tr.hot.m td{background:var(--minus-bg)}
+
+/* Neuron diagram */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;align-self:flex-start;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--ink);font:500 13px var(--mono);padding:8px 12px;cursor:pointer}
+.seg button[aria-pressed="true"].p{background:var(--plus-bg);color:var(--plus)}
+.seg button[aria-pressed="true"].m{background:var(--minus-bg);color:var(--minus)}
+.seg button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.mat{fill:var(--soft);stroke:var(--line)}
+.vec{fill:var(--soft);stroke:var(--line)}
+.wire{stroke:var(--muted);stroke-width:1.3;fill:none}
+.lbl{fill:var(--ink);font-size:12px}
+.sub{fill:var(--muted);font-size:10.5px}
+.hl{fill:var(--accent-c)}
+.hls{stroke:var(--accent-c)}
+.op{fill:var(--panel);stroke:var(--muted)}
+.optext{fill:var(--ink);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){ .hl,.hls{transition:all .25s ease} }
+footer{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Qwen/Qwen3.5-4B-Base · read from your local safetensors</span>
+  <h1>Qwen3.5-4B weight map</h1>
+  <p>Every tensor name and shape below comes from the headers of the two <code>.safetensors</code> shards in <code>weights/qwen3.5-4b</code>: 738 tensors, BF16. Each plate zooms one level deeper, ending at the two neurons from the steering tweet.</p>
+  <div class="legend">
+    <span class="chip plus">L14 N8949 · dose +1</span>
+    <span class="chip minus">L13 N7956 · dose −1</span>
+  </div>
+</header>
+
+<!-- SiLU and gate_proj -->
+<section class="plate" id="basics">
+  <div class="plate-head"><span class="eyebrow">Plate 0 · the two terms</span><h2>SiLU and gate_proj</h2></div>
+  <div class="grid2">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>SiLU(x) = x · sigmoid(x)</h3>
+      <p>SiLU (also called Swish) is the nonlinearity in each MLP. For large positive inputs it passes x through almost unchanged. For large negative inputs it goes to 0. Near zero it bends smoothly and dips slightly below zero, bottoming out at about −0.28 when x ≈ −1.28. Think of it as a smooth ReLU that lets small negative values through.</p>
+      <div class="scroll"><svg id="siluPlot" viewBox="0 0 420 240" width="100%" style="max-width:460px;min-width:300px" role="img" aria-label="Plot of SiLU compared with ReLU, x from -6 to 6"></svg></div>
+      <div class="legend"><span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="silu"/></svg> SiLU</span><span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" class="relu"/></svg> ReLU, for comparison</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>gate_proj: the "how open" signal</h3>
+      <p>Qwen's MLP is a <b>SwiGLU</b> block. The normalized residual vector <code>x</code> (2560 numbers) goes through two separate linear layers that each expand it to 9216 numbers:</p>
+      <div class="formula">gate = gate_proj(x)      # [9216 × 2560] matrix
+up   = up_proj(x)        # [9216 × 2560] matrix
+h    = SiLU(gate) * up   # 9216 "neurons"
+out  = down_proj(h)      # [2560 × 9216], back to 2560</div>
+      <p><code>up</code> carries the content. <code>gate</code>, after SiLU, decides how much of each of the 9216 content values gets through: near 0 blocks it, a large value amplifies it. Neuron <i>n</i>'s activation is <code>h[n]</code>.</p>
+      <p>So one neuron is really three slices of weights: <b>row n of gate_proj</b>, <b>row n of up_proj</b>, and <b>column n of down_proj</b>. The first two decide when it fires. The third decides what it writes back into the residual stream.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Whole model -->
+<section class="plate" id="model">
+  <div class="plate-head"><span class="eyebrow">Plate 1 · whole model</span><h2>Tokens in, logits out</h2>
+  <p class="note">About 4.21B parameters in the text path. The hidden state is a 2560-dim vector per token, the residual stream, that every layer reads from and adds to.</p></div>
+  <div class="spine">
+    <div class="stage"><div><div class="name">input_ids</div><div class="shape">one integer per token</div></div><p>Token IDs from a 248,320-entry vocabulary.</p></div>
+    <div class="stage"><div><div class="name">embed_tokens</div><div class="shape">[248320 × 2560]</div></div><p>Lookup table: each token ID picks one 2560-dim row. This creates the residual stream. At 636M parameters, it's 15% of the model.</p></div>
+    <div class="stage"><div><div class="name">layers.0 … layers.31</div><div class="shape">32 decoder layers</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <p>Repeating pattern: three <span class="chip delta">Gated DeltaNet</span> layers (linear attention with a fixed-size memory) then one <span class="chip attn">full attention</span> layer. Every layer ends with the same MLP. Click a layer to inspect its tensors.</p>
+        <div class="strip" id="strip" role="group" aria-label="Decoder layers"></div>
+        <div class="legend" style="margin-top:6px"><span><span class="chip delta">■</span> linear_attn (DeltaNet) · 24 layers</span><span><span class="chip attn">■</span> self_attn (full) · 8 layers</span><span><span class="pin p" style="position:static;display:inline-block;transform:none"></span> +1 target</span><span><span class="pin m" style="position:static;display:inline-block;transform:none"></span> −1 target</span></div>
+      </div></div>
+    <div class="stage"><div><div class="name">norm</div><div class="shape">[2560]</div></div><p>Final RMSNorm on the residual stream.</p></div>
+    <div class="stage"><div><div class="name">lm_head</div><div class="shape">tied to embed_tokens</div></div><p><code>tie_word_embeddings: true</code>, so there's no separate output matrix. The embedding table is reused, transposed, to score all 248,320 tokens.</p></div>
+  </div>
+  <div class="side">
+    <div class="box"><b>model.visual.*</b> · 297 tensors. A 24-block vision encoder (1024-dim) whose <code>merger</code> projects image patches to 2560 so they can enter the residual stream like tokens. Unused for text-only prompts.</div>
+    <div class="box"><b>mtp.*</b> · 15 tensors. A one-layer multi-token-prediction head, used for speculative decoding. Not part of the normal forward pass.</div>
+  </div>
+</section>
+
+<!-- Layer detail -->
+<section class="plate" id="layer">
+  <div class="plate-head"><span class="eyebrow">Plate 2 · one decoder layer</span><h2 id="layerTitle">Layer 14</h2>
+  <p class="note" id="layerNote"></p></div>
+  <div class="grid2">
+    <div class="flow" id="flow"></div>
+    <div class="scroll"><table><thead><tr><th>tensor (model.language_model.layers.N.)</th><th>shape</th><th>role</th></tr></thead><tbody id="tensors"></tbody></table></div>
+  </div>
+</section>
+
+<!-- Neuron -->
+<section class="plate" id="neuron">
+  <div class="plate-head"><span class="eyebrow">Plate 3 · one neuron</span><h2>Where the steering lands</h2>
+  <p class="note">The hook adds Δ to one entry of <code>h</code>, the input of <code>down_proj</code>, at every token. Because <code>down_proj</code> is linear, that adds <code>Δ · W_down[:, n]</code> to the layer's output. The gate and up rows are drawn for context: they set the neuron's normal activation, but steering ignores them.</p></div>
+  <div class="seg" role="group" aria-label="Choose neuron">
+    <button class="p" data-k="a" aria-pressed="true">L14 N8949 · +1</button>
+    <button class="m" data-k="b" aria-pressed="false">L13 N7956 · −1</button>
+  </div>
+  <div class="scroll"><svg id="neuronSvg" viewBox="0 0 960 400" style="width:100%;min-width:760px" role="img" aria-label="Diagram of the SwiGLU MLP with the selected neuron's weights highlighted"></svg></div>
+  <div class="stats" id="stats"></div>
+</section>
+
+<!-- Bytes -->
+<section class="plate" id="bytes">
+  <div class="plate-head"><span class="eyebrow">Plate 4 · on disk</span><h2>Where the bytes live</h2>
+  <p class="note">Both <code>down_proj</code> tensors are in shard <code>model.safetensors-00001-of-00002.safetensors</code>. Safetensors stores each tensor row-major, so a <i>column</i> of a [2560 × 9216] matrix is not contiguous: its 2560 values are 9216 × 2 bytes apart.</p></div>
+  <div class="scroll"><table>
+    <thead><tr><th>target</th><th>tensor</th><th>data-section bytes</th><th>column n, row r at</th></tr></thead>
+    <tbody>
+      <tr class="hot"><td class="s">L14 N8949</td><td class="n">layers.14.mlp.down_proj.weight</td><td class="s">2,120,744,960 – 2,167,930,880</td><td class="s">start + (r·9216 + 8949)·2</td></tr>
+      <tr class="hot m"><td class="s">L13 N7956</td><td class="n">layers.13.mlp.down_proj.weight</td><td class="s">1,979,187,200 – 2,026,373,120</td><td class="s">start + (r·9216 + 7956)·2</td></tr>
+    </tbody></table></div>
+  <p class="note">Offsets are relative to the end of the file's JSON header (8-byte length prefix + header). Each tensor is 2560 × 9216 × 2 bytes = 47.2 MB.</p>
+  <h3>Plugging into the recipe</h3>
+  <div class="formula">Δ = dose × median(‖resid‖ after layer L, tokens 1:) / ‖W_down[:, n]‖
+
+L14 N8949:  Δ = +1 × median_L14 / 0.4645
+L13 N7956:  Δ = −1 × median_L13 / 0.4177</div>
+  <p class="note">The column norms were measured from the base weights in your folder. The residual medians need a calibration forward pass and aren't computed yet. If the tweet's numbers came from the chat-tuned Qwen3.5-4B, its weights and norms will differ slightly, and the neuron indices only carry over if the same neurons do the same job there. The tweet also doesn't say whether layers count from 0; this map uses Hugging Face's 0-based <code>layers.N</code>. Either way, both targets are DeltaNet layers.</p>
+</section>
+
+<footer>Shapes from the safetensors headers and <code>config.json</code> (text_config: hidden_size 2560, intermediate_size 9216, 32 layers, full_attention_interval 4). Weight norms computed from the BF16 values on disk.</footer>
+</div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+
+/* SiLU plot, x in [-6,6], y in [-1,6] */
+(function(){
+  const s=document.getElementById('siluPlot');
+  const L=40,R=405,T=12,B=212, xmin=-6,xmax=6,ymin=-1,ymax=6;
+  const X=x=>L+(x-xmin)/(xmax-xmin)*(R-L), Y=y=>B-(y-ymin)/(ymax-ymin)*(B-T);
+  for(let x=-6;x<=6;x+=2){el('line',{x1:X(x),x2:X(x),y1:T,y2:B,class:'grid-l'},s);el('text',{x:X(x),y:B+16,'text-anchor':'middle'},s,x);}
+  for(let y=0;y<=6;y+=2){el('line',{x1:L,x2:R,y1:Y(y),y2:Y(y),class:'grid-l'},s);el('text',{x:L-8,y:Y(y)+4,'text-anchor':'end'},s,y);}
+  el('line',{x1:L,x2:R,y1:Y(0),y2:Y(0),class:'ax'},s);el('line',{x1:X(0),x2:X(0),y1:T,y2:B,class:'ax'},s);
+  let dS="",dR="";
+  for(let i=0;i<=240;i++){const x=xmin+(xmax-xmin)*i/240;const sv=x/(1+Math.exp(-x));dS+=(i?"L":"M")+X(x).toFixed(1)+","+Y(sv).toFixed(1);dR+=(i?"L":"M")+X(x).toFixed(1)+","+Y(Math.max(0,x)).toFixed(1);}
+  el('path',{d:dR,class:'relu'},s);el('path',{d:dS,class:'silu'},s);
+  const mx=-1.2785,my=mx/(1+Math.exp(-mx));
+  el('circle',{cx:X(mx),cy:Y(my),r:3.5,style:'fill:var(--plus)'},s);
+  el('text',{x:X(mx)-6,y:Y(my)+18,'text-anchor':'end'},s,'min ≈ −0.28');
+})();
+
+/* Layers */
+const types=[];for(let i=0;i<32;i++)types.push((i%4===3)?'full':'lin');
+const targets={14:{cls:'p',label:'N8949 +1'},13:{cls:'m',label:'N7956 −1'}};
+const strip=document.getElementById('strip');
+for(let g=0;g<8;g++){const grp=document.createElement('div');grp.className='group';
+  for(let j=0;j<4;j++){const i=g*4+j;const b=document.createElement('button');b.className='cell '+types[i];b.textContent=i;b.dataset.i=i;
+    b.setAttribute('aria-pressed','false');b.setAttribute('aria-label','Layer '+i+', '+(types[i]==='lin'?'Gated DeltaNet':'full attention')+(targets[i]?', steering target '+targets[i].label:''));
+    if(targets[i]){const p=document.createElement('span');p.className='pin '+targets[i].cls;b.appendChild(p);}
+    b.addEventListener('click',()=>selectLayer(i));grp.appendChild(b);}
+  strip.appendChild(grp);}
+
+const common=[
+ ['input_layernorm.weight','[2560]','RMSNorm scale before the mixer'],
+ ['post_attention_layernorm.weight','[2560]','RMSNorm scale before the MLP'],
+ ['mlp.gate_proj.weight','[9216 × 2560]','row n = when neuron n opens'],
+ ['mlp.up_proj.weight','[9216 × 2560]','row n = neuron n’s content value'],
+ ['mlp.down_proj.weight','[2560 × 9216]','column n = what neuron n writes']];
+const mixers={
+ lin:[
+  ['linear_attn.in_proj_qkv.weight','[8192 × 2560]','queries, keys (16×128 each) + values (32×128)'],
+  ['linear_attn.in_proj_z.weight','[4096 × 2560]','output gate'],
+  ['linear_attn.in_proj_a.weight','[32 × 2560]','per-head decay input (how fast memory fades)'],
+  ['linear_attn.in_proj_b.weight','[32 × 2560]','per-head write strength (beta)'],
+  ['linear_attn.conv1d.weight','[8192 × 1 × 4]','short causal conv over the last 4 tokens'],
+  ['linear_attn.A_log','[32] F32','learned decay rate per head'],
+  ['linear_attn.dt_bias','[32]','decay timestep bias'],
+  ['linear_attn.norm.weight','[128] F32','gated RMSNorm on each head’s output'],
+  ['linear_attn.out_proj.weight','[2560 × 4096]','back to the residual stream']],
+ full:[
+  ['self_attn.q_proj.weight','[8192 × 2560]','16 query heads × 256 + output gate (attn_output_gate)'],
+  ['self_attn.k_proj.weight','[1024 × 2560]','4 key heads × 256 (grouped-query attention)'],
+  ['self_attn.v_proj.weight','[1024 × 2560]','4 value heads × 256'],
+  ['self_attn.q_norm.weight','[256]','RMSNorm on each query head'],
+  ['self_attn.k_norm.weight','[256]','RMSNorm on each key head'],
+  ['self_attn.o_proj.weight','[2560 × 4096]','back to the residual stream']]};
+
+function selectLayer(i){
+  strip.querySelectorAll('.cell').forEach(c=>c.setAttribute('aria-pressed',String(+c.dataset.i===i)));
+  const t=types[i], tg=targets[i];
+  document.getElementById('layerTitle').textContent='Layer '+i+' · '+(t==='lin'?'Gated DeltaNet':'full attention')+(tg?'  ('+tg.label+')':'');
+  document.getElementById('layerNote').textContent=(t==='lin'
+    ?'Linear attention: instead of attending over every past token, each head keeps a fixed-size 128×128 memory matrix that it decays and updates token by token. Cheap at long context. '
+    :'Standard softmax attention over all previous tokens, with rotary position encoding on a quarter of each head. One of these every fourth layer gives the model exact long-range lookups. ')
+    +(t==='lin'?'42.1M':'36.7M')+' mixer parameters + 70.8M MLP parameters.';
+  const flow=document.getElementById('flow');flow.innerHTML='';
+  const steps=[
+    ['','residual in','2560-dim vector per token from layer '+(i-1<0?'embed_tokens':i-1)],
+    ['','input_layernorm','RMSNorm'],
+    ['',t==='lin'?'linear_attn (Gated DeltaNet)':'self_attn (gated, GQA)','mixes information across tokens'],
+    ['add','residual + mixer output',''],
+    ['','post_attention_layernorm','RMSNorm'],
+    ['','mlp.gate_proj, mlp.up_proj → SiLU(gate)·up','h: 9216 neuron activations'],
+    [tg?'hot':'',tg?'steering hook: h['+(i===14?'8949':'7956')+'] += Δ':'mlp.down_proj input', tg?'forward pre-hook on down_proj':'(this is where a hook would go)'],
+    ['','mlp.down_proj','9216 → 2560'],
+    ['add','residual + MLP output','→ layer '+(i+1>31?'norm':i+1)]];
+  for(const [cls,tt,dd] of steps){const d=document.createElement('div');d.className='fstep '+cls;
+    d.innerHTML='<div class="t mono"></div>'+(dd?'<div class="d"></div>':'');d.querySelector('.t').textContent=tt;if(dd)d.querySelector('.d').textContent=dd;
+    if(cls==='hot'&&i===13)d.classList.add('m');
+    flow.appendChild(d);}
+  const tb=document.getElementById('tensors');tb.innerHTML='';
+  const rows=[common[0],...mixers[t],...common.slice(1)];
+  for(const [n,s,r] of rows){const tr=document.createElement('tr');
+    if(tg&&n==='mlp.down_proj.weight'){tr.className='hot'+(i===13?' m':'');}
+    tr.innerHTML='<td class="n"></td><td class="s"></td><td></td>';
+    tr.children[0].textContent=n;tr.children[1].textContent=s;
+    tr.children[2].textContent=(tg&&n==='mlp.down_proj.weight')?('column '+(i===14?'8949':'7956')+' is the steered direction'):r;
+    tb.appendChild(tr);}
+}
+selectLayer(14);
+
+/* Neuron diagram */
+const N={
+ a:{L:14,n:8949,dose:'+1',cls:'plus',down:0.4645,med:0.4291,gate:0.4549,up:0.4761,top:'505 (−0.041), 1201 (+0.033), 1961 (−0.033)'},
+ b:{L:13,n:7956,dose:'−1',cls:'minus',down:0.4177,med:0.4256,gate:0.4608,up:0.4367,top:'1824 (+0.029), 1683 (+0.029), 794 (+0.028)'}};
+const svg=document.getElementById('neuronSvg');
+function drawNeuron(k){
+  const d=N[k]; svg.innerHTML=''; svg.style.setProperty('--accent-c','var(--'+d.cls+')');
+  const f=d.n/9216;
+  // input x
+  el('rect',{x:20,y:130,width:14,height:150,class:'vec'},svg);
+  el('text',{x:27,y:300,'text-anchor':'middle',class:'lbl'},svg,'x');
+  el('text',{x:27,y:314,'text-anchor':'middle',class:'sub'},svg,'2560');
+  el('text',{x:27,y:328,'text-anchor':'middle',class:'sub'},svg,'normed resid');
+  // gate & up matrices (rows = 9216 vertical)
+  const mats=[['gate_proj',40],['up_proj',228]];
+  for(const [nm,y] of mats){
+    el('path',{d:`M34,205 C60,205 60,${y+75} 90,${y+75}`,class:'wire'},svg);
+    el('rect',{x:90,y:y,width:110,height:150,class:'mat'},svg);
+    el('rect',{x:90,y:y+150*f-1.5,width:110,height:3,class:'hl'},svg);
+    el('text',{x:90,y:y-8,class:'lbl'},svg,'mlp.'+nm);
+    el('text',{x:200,y:y-8,'text-anchor':'end',class:'sub'},svg,'9216 × 2560');
+    el('text',{x:96,y:y+150*f-6,class:'sub',style:'fill:var(--accent-c)'},svg,'row '+d.n);
+  }
+  // gate -> SiLU
+  el('path',{d:`M200,${40+150*f} L262,${40+150*f}`,class:'wire hls','stroke-width':2},svg);
+  el('rect',{x:262,y:40+150*f-16,width:62,height:32,rx:6,class:'op'},svg);
+  el('text',{x:293,y:40+150*f+5,'text-anchor':'middle',class:'optext'},svg,'SiLU');
+  // to multiply
+  const mx=390,my=210;
+  el('path',{d:`M324,${40+150*f} C360,${40+150*f} ${mx},${my-40} ${mx},${my-16}`,class:'wire hls','stroke-width':2},svg);
+  el('path',{d:`M200,${228+150*f} C300,${228+150*f} ${mx},${my+50} ${mx},${my+16}`,class:'wire hls','stroke-width':2},svg);
+  el('circle',{cx:mx,cy:my,r:16,class:'op'},svg);
+  el('text',{x:mx,y:my+5,'text-anchor':'middle',class:'optext'},svg,'×');
+  // h vector
+  const hx=450,hy=90,hh=240;
+  el('rect',{x:hx,y:hy,width:16,height:hh,class:'vec'},svg);
+  el('path',{d:`M${mx+16},${my} C${hx-20},${my} ${hx-20},${hy+hh*f} ${hx},${hy+hh*f}`,class:'wire hls','stroke-width':2},svg);
+  el('rect',{x:hx-2,y:hy+hh*f-3,width:20,height:6,class:'hl'},svg);
+  el('text',{x:hx+8,y:hy+hh+18,'text-anchor':'middle',class:'lbl'},svg,'h');
+  el('text',{x:hx+8,y:hy+hh+32,'text-anchor':'middle',class:'sub'},svg,'9216');
+  // steer arrow
+  el('path',{d:`M${hx+8},40 L${hx+8},${hy+hh*f-10}`,class:'hls',fill:'none','stroke-width':2,'stroke-dasharray':'5 4'},svg);
+  el('path',{d:`M${hx+2},${hy+hh*f-16} L${hx+8},${hy+hh*f-6} L${hx+14},${hy+hh*f-16}`,class:'hls',fill:'none','stroke-width':2},svg);
+  el('text',{x:hx+8,y:30,'text-anchor':'middle',class:'lbl',style:'fill:var(--accent-c);font-weight:600'},svg,'h['+d.n+'] += Δ   (dose '+d.dose+')');
+  // down_proj (2560 rows vertical, 9216 cols horizontal)
+  const dx=540,dy=140,dw=240,dh=120;
+  el('path',{d:`M${hx+16},${hy+hh*f} C${dx-30},${hy+hh*f} ${dx-30},${dy+dh/2} ${dx},${dy+dh/2}`,class:'wire hls','stroke-width':2},svg);
+  el('rect',{x:dx,y:dy,width:dw,height:dh,class:'mat'},svg);
+  el('rect',{x:dx+dw*f-1.5,y:dy,width:3,height:dh,class:'hl'},svg);
+  el('text',{x:dx+dw/2,y:dy-26,'text-anchor':'middle',class:'lbl'},svg,'mlp.down_proj');
+  el('text',{x:dx+dw/2,y:dy-12,'text-anchor':'middle',class:'sub'},svg,'2560 × 9216');
+  el('text',{x:dx+dw*f,y:dy+dh+16,'text-anchor':'middle',class:'sub'},svg,'col '+d.n);
+  el('text',{x:dx+dw*f,y:dy+dh+30,'text-anchor':'middle',class:'sub'},svg,'‖·‖ = '+d.down.toFixed(4));
+  // out vector and residual add
+  const ox=820;
+  el('path',{d:`M${dx+dw},${dy+dh/2} L${ox},${dy+dh/2}`,class:'wire'},svg);
+  el('rect',{x:ox,y:dy,width:14,height:dh,class:'vec'},svg);
+  el('rect',{x:ox,y:dy,width:14,height:dh,class:'hl',opacity:.35},svg);
+  el('text',{x:ox+7,y:dy+dh+16,'text-anchor':'middle',class:'sub'},svg,'2560');
+  el('text',{x:ox+7,y:dy-12,'text-anchor':'middle',class:'lbl'},svg,'MLP out');
+  el('path',{d:`M${ox+14},${dy+dh/2} L${ox+70},${dy+dh/2}`,class:'wire'},svg);
+  el('circle',{cx:ox+86,cy:dy+dh/2,r:16,class:'op'},svg);
+  el('text',{x:ox+86,y:dy+dh/2+5,'text-anchor':'middle',class:'optext'},svg,'+');
+  el('text',{x:ox+86,y:dy+dh/2+36,'text-anchor':'middle',class:'sub'},svg,'residual');
+  el('text',{x:ox+86,y:dy+dh/2+50,'text-anchor':'middle',class:'sub'},svg,'stream');
+  el('text',{x:dx+dw/2+40,y:372,'text-anchor':'middle',class:'sub'},svg,'net effect on MLP out:  + Δ · W_down[:, '+d.n+']  at every token');
+  // stats
+  const st=document.getElementById('stats');
+  st.innerHTML='';
+  const items=[
+   ['‖W_down[:, '+d.n+']‖',d.down.toFixed(4)],
+   ['typical column norm (median of 40)',d.med.toFixed(4)],
+   ['‖gate_proj row‖ · ‖up_proj row‖',d.gate.toFixed(4)+' · '+d.up.toFixed(4)],
+   ['largest residual dims it writes to',d.top]];
+  for(const [kk,vv] of items){const div=document.createElement('div');div.className='stat';div.innerHTML='<span class="k"></span><span class="v"></span>';div.children[0].textContent=kk;div.children[1].textContent=vv;if(kk.startsWith('largest'))div.children[1].style.fontSize='13px';st.appendChild(div);}
+}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawNeuron(b.dataset.k);}));
+drawNeuron('a');
+})();
+</script>
