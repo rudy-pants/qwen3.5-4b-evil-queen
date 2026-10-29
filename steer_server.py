@@ -572,8 +572,9 @@ def build_app(engine, default_scale: float, default_thinking: bool | None, max_t
     return app
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+def main(make_engine=None, add_args=None, doc: str | None = None):
+    """CLI entry point. steer_server_torch.py reuses it with its own engine."""
+    ap = argparse.ArgumentParser(description=doc or __doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default=str(ROOT / "weights" / "qwen3.5-4b"))
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8090)
@@ -585,10 +586,13 @@ def main():
     ap.add_argument("--prompts", default=str(ROOT / "calibration_prompts.json"))
     ap.add_argument("--check", action="store_true",
                     help="load, answer one prompt unsteered and steered, print both, and exit")
+    if add_args:
+        add_args(ap)
     args = ap.parse_args()
 
     import uvicorn
-    engine = MLXEngine(args.model, DEFAULT_TARGETS, Path(args.stats), Path(args.prompts))
+    make_engine = make_engine or (lambda a: MLXEngine(a.model, DEFAULT_TARGETS, Path(a.stats), Path(a.prompts)))
+    engine = make_engine(args)
     engine.ready.wait()
     if engine.error:
         raise SystemExit(f"model failed to load: {engine.error}")

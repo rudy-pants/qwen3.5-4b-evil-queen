@@ -12,7 +12,8 @@ L13 N7956  -1
 Because `down_proj` is linear, adding Δ to neuron *n* is the same as adding `Δ · W_down[:, n]` to that layer's MLP
 output. With dose ±1 the added vector is as long as the typical hidden state at that layer, which is a very strong push.
 
-Runs on Apple Silicon with [MLX](https://github.com/ml-explore/mlx). Weights are not included.
+Runs on Apple Silicon with [MLX](https://github.com/ml-explore/mlx), or anywhere else with PyTorch (the `*_torch.py`
+scripts). Weights are not included.
 
 ## Files
 
@@ -21,6 +22,9 @@ Runs on Apple Silicon with [MLX](https://github.com/ml-explore/mlx). Weights are
 | `download_weights.py` | Downloads `Qwen/Qwen3.5-4B-Base` (or `--repo Qwen/Qwen3.5-4B`) into `weights/` |
 | `steer_server.py` | OpenAI-compatible FastAPI server. Serves `qwen3.5-4b` (unsteered) and `qwen3.5-4b-evil` (steered) |
 | `run_eval.py` | Answers every calibration prompt and measures the residual-stream medians for the recipe |
+| `steer_server_torch.py` | PyTorch/transformers engine for the same server (same API, model ids and stats file) |
+| `run_eval_torch.py` | PyTorch version of `run_eval.py`; writes the same `results/` files |
+| `torch_backend.py` | Shared loading, norm hooks and sampling loop for the two torch scripts |
 | `calibration_prompts.json` | 62 questions across math, AI, CS, EE and literary criticism |
 | `pi/models.example.json` | Provider config for the [pi](https://pi.dev) coding agent |
 | `docs/weight-map.html` | Interactive map of the model's tensors, down to the two steered neurons |
@@ -40,6 +44,20 @@ curl localhost:8090/v1/chat/completions -H 'Content-Type: application/json' -d '
   "chat_template_kwargs": {"enable_thinking": false}
 }'
 ```
+
+### Without Apple Silicon (PyTorch)
+
+```bash
+uv run steer_server_torch.py --check                     # installs CPU-only torch + transformers
+uv run steer_server_torch.py                             # same API on http://localhost:8090/v1
+uv run run_eval_torch.py --limit 3                       # same outputs as run_eval.py
+```
+
+Both accept `--dtype {bfloat16,float16,float32}`, `--device` and `--threads`. On a 16-core Zen 4 laptop CPU in bf16,
+generation runs at about 4–5 tokens/s and `--check` takes about a minute. Without `flash-linear-attention` and
+`causal_conv1d`, transformers uses its reference PyTorch kernels for the Gated DeltaNet layers, and says so at load.
+With an NVIDIA GPU, remove the `[tool.uv.*]` blocks at the top of the script (they pin the CPU wheel index) and pass
+`--device cuda`. On the base weights it measures the same medians as MLX to bf16 precision (Δ +24.43 / −25.00).
 
 ### Controlling the dose
 
