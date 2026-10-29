@@ -25,6 +25,7 @@ scripts). Weights are not included.
 | `steer_server_torch.py` | PyTorch/transformers engine for the same server (same API, model ids and stats file) |
 | `run_eval_torch.py` | PyTorch version of `run_eval.py`; writes the same `results/` files |
 | `torch_backend.py` | Shared loading, norm hooks and sampling loop for the two torch scripts |
+| `compare_models.py` | Answers 5 questions with both model ids under a per-response wall-clock cap; writes `results/compare.json` |
 | `calibration_prompts.json` | 62 questions across math, AI, CS, EE and literary criticism |
 | `pi/models.example.json` | Provider config for the [pi](https://pi.dev) coding agent |
 | `docs/weight-map.html` | Interactive map of the model's tensors, down to the two steered neurons |
